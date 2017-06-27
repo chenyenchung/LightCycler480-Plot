@@ -6,10 +6,11 @@
 
 intCtrl <- "Gapdh" # Internal ctrl gene
 ctrlGroup <- "HGSN" # Name of ctrl sample (Check readme for details)
-bioRep <- T # If there's multiple biological sample in this file, set as TRUE (NO QUOTE!)
+ignore <- "ignore"
+bioRep <- F # If there's multiple biological sample in this file, set as TRUE (NO QUOTE!)
 logScale <- F # If you want to use log scale, set as TRUE. (Right now only for bioRep == TRUE)
-fontSize <- 18
-splitChr <- "_"
+fontSize <- 18 # Set font size for figure output
+splitChr <- " " #Setting the character spliting sample name and replicate number
 
 #Load required packages. (Auto install if necessary)
 dplyrEx <- require("dplyr")
@@ -35,11 +36,14 @@ if (!hmiscEx) {
 
 rawPath <- file.choose()
 setwd(dirname(rawPath))
-raw <- read.table(rawPath, header = TRUE, stringsAsFactors = FALSE, skip = 1, sep = "\t")
+raw <- read.table(rawPath, header = TRUE, stringsAsFactors = FALSE, skip = 1, sep = "\t", fill = TRUE)
 layout <- read.csv("primerlayout.csv", header = FALSE, stringsAsFactors = FALSE)
 raw$gene <- as.character(unlist(as.data.frame(t(layout))))
 workTbl <- tbl_df(raw[,c(4,5,9)])
 workTbl$Cp[workTbl$Cp == 0] <- 40 
+workTbl$Cp[is.na(workTbl$Cp)] <- 40 
+workTbl <- workTbl[-which(workTbl$gene == ignore),]
+
 
 if(!bioRep){
   sumTbl <- summarise(group_by(workTbl, Name, gene), mean = mean(Cp), sd = sd(Cp))
@@ -58,7 +62,7 @@ if(!bioRep){
   #Plots for relative expression and fold change
   relBar <- ggplot(data = filter(sumTbl, !(gene == intCtrl)),
                   aes(x = gene, y = relExp, fill = Name))+
-                  geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.7) +
+                  geom_bar(stat = "identity", position = position_dodge(width = 0.8), colour = "black") +
                   labs(x = "Gene", y = paste0("Relative Expression to ", intCtrl), fill = "Sample")+
                   theme_classic(base_size = fontSize)
   
@@ -66,7 +70,7 @@ if(!bioRep){
   
   fcBar <- ggplot(data = filter(sumTbl, !(gene == intCtrl)),
                   aes(x = gene, y = fc, fill = Name))+
-                  geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.7) +
+                  geom_bar(stat = "identity", position = position_dodge(width = 0.8), colour = "black") +
                   labs(x = "Gene", y = paste0("Fold Change to ", ctrlGroup), fill = "Sample")+
                   geom_hline(yintercept = 1, alpha = 0.5, linetype = "dashed")+
                   theme_classic(base_size = fontSize)
@@ -110,7 +114,7 @@ if(!bioRep){
                                  width = 0.5,
                                  alpha = 0.5,
                                  show.legend = FALSE)+
-                    labs(x = "Gene", y = paste0("Reletive Expression to ", intCtrl), colour = "Sample")+
+                    labs(x = "Gene", y = paste0("Relative Expression to ", intCtrl), colour = "Sample")+
                     theme_classic(base_size = fontSize)
   
   if (logScale) {print(relPlot + scale_y_continuous(trans = "log10"))}else{print(relPlot)}
