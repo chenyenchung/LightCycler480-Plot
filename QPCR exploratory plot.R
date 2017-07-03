@@ -5,10 +5,10 @@
 ###################################################
 
 intCtrl <- "Gapdh" # Internal ctrl gene
-ctrlGroup <- "HGSN" # Name of ctrl sample (Check readme for details)
+ctrlGroup <- "1-1" # Name of ctrl sample (Check readme for details)
 ignore <- "ignore"
-bioRep <- F # If there's multiple biological sample in this file, set as TRUE (NO QUOTE!)
-logScale <- F # If you want to use log scale, set as TRUE. (Right now only for bioRep == TRUE)
+bioRep <- T # If there's multiple biological sample in this file, set as TRUE (NO QUOTE!)
+logScale <- T # If you want to use log scale, set as TRUE. (Right now only for bioRep == TRUE)
 fontSize <- 18 # Set font size for figure output
 splitChr <- " " #Setting the character spliting sample name and replicate number
 
@@ -42,7 +42,7 @@ raw$gene <- as.character(unlist(as.data.frame(t(layout))))
 workTbl <- tbl_df(raw[,c(4,5,9)])
 workTbl$Cp[workTbl$Cp == 0] <- 40 
 workTbl$Cp[is.na(workTbl$Cp)] <- 40 
-workTbl <- workTbl[-which(workTbl$gene == ignore),]
+workTbl <- workTbl[!(workTbl$gene == ignore),]
 
 
 if(!bioRep){
@@ -97,6 +97,8 @@ if(!bioRep){
   refTbl <- filter(sumTbl, Name == ctrlGroup)
   expTbl <- filter(sumTbl, !(Name == ctrlGroup))
   expTbl$fc <- expTbl$relExp/refTbl$relExp
+  refTbl$fc <- 1
+  fcTbl <- rbind(expTbl, refTbl)
   
   #Plots for relative expression and fold change
   relPlot <- ggplot(data = filter(sumTbl, !(gene == intCtrl)), aes(x = gene, y = relExp, colour = Name, group = Name)) +
@@ -119,7 +121,7 @@ if(!bioRep){
   
   if (logScale) {print(relPlot + scale_y_continuous(trans = "log10"))}else{print(relPlot)}
   
-  fcplot <- ggplot(data = filter(expTbl, !(gene == intCtrl)),
+  fcplot <- ggplot(data = filter(fcTbl, !(gene == intCtrl)),
                    aes(x = gene, y = fc, colour = Name, group = Name))+
     geom_jitter(position = position_dodge(width = 0.5), size = 3, alpha = 0.3)+
     stat_summary(fun.y = mean,
