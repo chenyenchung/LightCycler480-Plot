@@ -1,4 +1,4 @@
-#Load required packages. (Auto install if necessary)
+# Load required packages. (Auto install if necessary)
 dplyrEx <- require("dplyr")
 if(!dplyrEx){
   install.pacakages("dplyr")
@@ -15,6 +15,12 @@ hmiscEx <- require("Hmisc")
 if (!hmiscEx) {
   install.packages("Hmisc")
   library("Hmisc")
+}
+
+cowEx <- require("cowplot")
+if (!cowEx) {
+  install.packages("cowplot")
+  library("cowplot")
 }
 
 # Append primerlayout on rawdata
@@ -54,28 +60,38 @@ if(!bioRep){
   sumTbl <- mutate(sumTbl, fc = relExp/refExp)
   
 ####  Order the sample and genes here (No biorep) ####  
-  #sumTbl$Name <- factor(sumTbl$Name, levels = c("H3Gold", "H3Gnew", "KO14", "KO22"))
-  #sumTbl$gene <- factor(sumTbl$gene, levels = c("Meg3v1", "Meg3v5","Ezh2"))#"Hb9", "Hoxa5","Hoxc8"))
+#  sumTbl$Name <- factor(sumTbl$Name, levels = c("H3G@ES","H3G@D2","H3G@D4", "H3G@D7"))
+#  sumTbl$gene <- factor(sumTbl$gene, levels = c("Gapdh","Oct4","Sox1","Pax6","Hba-a1","Hbb-bh1"))
 ###
   
   #Plots for relative expression and fold change
   relBar <- ggplot(data = filter(sumTbl, !(gene == intCtrl)),
                   aes(x = gene, y = relExp, fill = Name))+
                   geom_bar(stat = "identity", position = position_dodge(width = 0.8), colour = "black") +
-                  labs(x = "Gene", y = paste0("Relative Expression to ", intCtrl), fill = "Sample")+
-                  theme_classic(base_size = fontSize) #+ scale_fill_manual(values = c("blue","lightblue","blue","lightblue","red","pink"))
+                  labs(x = "Gene", y = paste0("Relative Expression to ", intCtrl), fill = "Sample") +
+                  #geom_text(aes(label = Name),
+                  #          position = position_dodge(width = 0.8), size = 3,
+                  #          angle = -90, hjust = -0.5) +
+                  theme_classic(base_size = fontSize)# +
+                  #scale_fill_manual(values = c("Dodgerblue4","Dodgerblue3","Dodgerblue2","Dodgerblue1"))#+
+                  #guides(fill = FALSE)
   
-  print(relBar)
+  if(logScale){print(relBar + scale_y_continuous(trans = "log10"))}else{print(relBar)}
   
   fcBar <- ggplot(data = filter(sumTbl, !(gene == intCtrl)),
                   aes(x = gene, y = fc, fill = Name))+
                   geom_bar(stat = "identity", position = position_dodge(width = 0.8), colour = "black") +
                   labs(x = "Gene", y = paste0("Fold Change to ", ctrlGroup), fill = "Sample")+
                   geom_hline(yintercept = 1, alpha = 0.5, linetype = "dashed")+
-                  theme_classic(base_size = fontSize) #+ scale_fill_manual(values = c("blue","lightblue","blue","lightblue","red","pink"))
+                  #geom_text(aes(label = Name),
+                  #position = position_dodge(width = 0.8), size = 3,
+                  #angle = -90, hjust = 0.5) +
+                  theme_classic(base_size = fontSize)# +
+                  #scale_fill_manual(values = c("Dodgerblue4","Dodgerblue3","Dodgerblue2","Dodgerblue1")) #+
+                  #guides(fill = FALSE)
   
   
-  print(fcBar)
+  if(logScale){print(fcBar + scale_y_continuous(trans = "log10"))}else{print(fcBar)}
                 
   
 }else{
@@ -96,9 +112,19 @@ if(!bioRep){
 
 ####  Order the sample and genes here (Biorep) ####
   
-#  sumTbl$Name <- factor(sumTbl$Name, levels = c("WTB","IgDMR", "V1OE1","V1OE7", "V1OE8","V1OE15"))
-#  sumTbl$gene <- factor(sumTbl$gene, levels = c("Meg3v1", "Meg3v5","Ezh2"))#"Hb9", "Hoxa5","Hoxc8"))
-  
+#  sumTbl$Name <- factor(sumTbl$Name, levels = c("WTB","IgDMR","V1OE1","V1OE7","V1OE8","V1OE15"))
+# #                                               "V5OE13","V5OE24","DOE13"))
+# # levels(sumTbl$Name)[levels(sumTbl$Name) == "V1OE15"] <- "Meg3v1 OE"
+#  levels(sumTbl$Name)[levels(sumTbl$Name) == "WTB"] <- "Wildtype Ctrl (p10-13)"
+#  levels(sumTbl$Name)[levels(sumTbl$Name) == "IgDMR"] <- "IgDMR MatKO (p12-15)"
+#  levels(sumTbl$Name)[levels(sumTbl$Name) == "V1OE1"] <- "Meg3v1 OE #1 (p11-14)"
+#  levels(sumTbl$Name)[levels(sumTbl$Name) == "V1OE7"] <- "Meg3v1 OE #7 (p11-14)"
+#  levels(sumTbl$Name)[levels(sumTbl$Name) == "V1OE8"] <- "Meg3v1 OE #8 (p11-14)"
+#  levels(sumTbl$Name)[levels(sumTbl$Name) == "V1OE15"] <- "Meg3v1 OE #15 (p11-14)"
+# # levels(sumTbl$Name)[levels(sumTbl$Name) == "V5OE13"] <- "Meg3v5 OE #13 (p26-28)"
+# # levels(sumTbl$Name)[levels(sumTbl$Name) == "V5OE24"] <- "Meg3v5 OE #24 (p26-28)"
+#  sumTbl$gene <- factor(sumTbl$gene, levels = c("Meg3v1","Meg3v5","Mirg","Rian"))#,"Jarid2", "Dlk1","Dio3","Rtl1","Mirg","Rian"))
+#   
 ####
     
   refTbl <- filter(sumTbl, Name == ctrlGroup)
@@ -109,7 +135,8 @@ if(!bioRep){
   
   #Plots for relative expression and fold change
   relplot <- ggplot(data = filter(sumTbl, !(gene == intCtrl)), aes(x = gene, y = relExp, colour = Name, group = Name)) +
-                    geom_jitter(position = position_dodge(width = 0.5), size = 3, alpha = 0.3)+
+                    geom_jitter(#aes(pch = rep),
+                                position = position_dodge(width = 0.5), size = 3, alpha = 0.5)+
                     stat_summary(fun.y = mean,
                                  geom = "point",
                                  pch = "\U2013",
@@ -123,16 +150,19 @@ if(!bioRep){
                                  width = 0.5,
                                  alpha = 0.5,
                                  show.legend = FALSE)+
-                    labs(x = "Gene", y = paste0("Relative Expression to ", intCtrl), colour = "Sample")+
-                    theme_classic(base_size = fontSize)+
-                    scale_color_manual(values = c("black","red",rep("green",4)))
+                    labs(x = "Gene", y = paste0("Relative Expression to ", intCtrl),
+                         colour = "Sample", pch = "Replicate")+
+                    theme_classic(base_size = fontSize)#+
+                    #scale_color_manual(values = c("navyblue","maroon",rep("springgreen3",4),
+                    #              rep("dodgerblue",2),"purple"))
                     
   
   if (logScale) {print(relplot + scale_y_continuous(trans = "log10"))}else{print(relplot)}
   
   fcplot <- ggplot(data = filter(fcTbl, !(gene == intCtrl)),
                    aes(x = gene, y = fc, colour = Name, group = Name))+
-    geom_jitter(position = position_dodge(width = 0.5), size = 3, alpha = 0.3)+
+    geom_jitter(#aes(pch = rep),
+                position = position_dodge(width = 0.5), size = 3, alpha = 0.5)+
     stat_summary(fun.y = mean,
                  geom = "point",
                  pch = "\U2013",
@@ -146,10 +176,20 @@ if(!bioRep){
                  width = 0.5,
                  alpha = 0.5,
                  show.legend = FALSE)+
-    labs(x = "Gene", y = paste0("Fold Change to ", ctrlGroup), colour = "Sample")+
+    labs(x = "Gene", y = paste0("Fold Change to ", ctrlGroup),
+         colour = "Sample", pch = "Replicate")+
     geom_hline(yintercept = 1, alpha = 0.5, linetype = "dashed")+
-    theme_classic(base_size = fontSize)+
-    scale_color_manual(values = c("black","red",rep("green",4)))
+    theme_classic(base_size = fontSize) #+
+    #scale_color_manual(values = c("navyblue","maroon",rep("springgreen3",4),
+    #                              rep("dodgerblue",2)))# +
+    #scale_y_continuous(limits = c(0,5))
   
   if(logScale){print(fcplot + scale_y_continuous(trans = "log10"))}else{print(fcplot)}
 }
+
+output <- group_by(sumTbl, Name, gene)
+exp_sum <- summarise(output, mean_cp = mean(mean), rel_exp = mean(relExp))
+exp_tbl <- dcast(exp_sum, Name ~ gene, value.var = "rel_exp")
+cp_tbl <- dcast(exp_sum, Name ~ gene, value.var = "mean_cp")
+write.csv(x = exp_tbl, file = "summary_table_exp.csv")
+write.csv(x = cp_tbl, file = "summary_table_cp.csv")
